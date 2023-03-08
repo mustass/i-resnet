@@ -1,0 +1,27 @@
+torch
+tqdm
+datasets
+pandas
+numpy
+wandb
+ftfy
+regex
+scikit-learn
+click
+joblib
+pyyaml
+hydra-core
+pytorch-lightning
+hydra_colorlog
+rich
+six
+filelock
+wget
+# Jax magic
+#-f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+#jax[cuda11_cudnn82]  # GPU
+jax[cpu]  # CPU
+tree-math
+equinox
+optax
+carbontracker
