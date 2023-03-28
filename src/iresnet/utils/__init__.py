@@ -1,0 +1,1 @@
+from .spectral_norms import spectral_norm_linear, spectral_norm_conv2d
