@@ -3,9 +3,6 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Int, PyTree
 
-## I DO NOT THINK THAT THE DIMENSIONS WORK PROPERLY WITH CONVOlUTIONS
-
-
 class resnet_block_conv_cifar10(eqx.Module):
     layers: list
 
@@ -19,7 +16,9 @@ class resnet_block_conv_cifar10(eqx.Module):
             eqx.nn.Conv2d(6,16,5,1,1, key=key2),
             jax.nn.relu,
             eqx.nn.MaxPool2d(2,2),
-            eqx.nn.Conv2d(16,3,1,8,0, key=key3),
+            eqx.nn.ConvTranspose2d(in_channels = 16,out_channels = 3,kernel_size = 9,
+                                   stride = 3, output_padding = 2, padding = 1, 
+                                   dilation=2 , key=key3),
             jax.nn.relu,
         ]
     
