@@ -25,9 +25,9 @@ def load_requirements(
 
 setup(
     package_dir={"": "src"},
-    python_requires=">=3.10",
-    install_requires=load_requirements(),
-    extras_require={
-        "dev": load_requirements("requirements-dev.txt"),
-    },
+    python_requires=">=3.9",
+    #install_requires=load_requirements(),
+    #extras_require={
+    #    "dev": load_requirements("requirements-dev.txt"),
+    #},
 )

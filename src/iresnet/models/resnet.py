@@ -3,62 +3,72 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Int, PyTree
 
-class resnet_block_conv_cifar10(eqx.Module):
+class BasicBlock(eqx.Module):
+    layers:list
+    skip: list
+    
+    def __init__(self, in_planes, planes, key, stride = 1) -> None:
+        super(BasicBlock).__init__()
+        key1, key2 = jax.random.split(key, 2)
+        self.layers = [
+         eqx.nn.Conv2d(in_channels=in_planes, out_channels=planes,  kernel_size=3, stride=stride, padding=1, use_bias=False, key=key1),
+         eqx.experimental.BatchNorm(input_size=planes, axis_name="batch"),
+         jax.nn.relu,
+         eqx.nn.Conv2d(in_channels=planes, out_channels=planes,  kernel_size=3, stride= 1,padding=1, use_bias=False,key=key2),
+         eqx.experimental.BatchNorm(input_size=planes, axis_name="batch")
+        ]
+        self.skip = []
+        if stride != 1 or (in_planes != planes):
+            self.skip = [
+                eqx.nn.Conv2d(in_channels=in_planes, out_channels=planes,  kernel_size=1, stride=stride ,padding=0, use_bias=False,key=key1),
+                eqx.experimental.BatchNorm(input_size=planes, axis_name="batch"),
+            ]
+
+    def __call__(self, x: Float[Array, "3 32 32"]) ->  Float[Array, "3 32 32"]:
+        y = x
+        for i, layer in enumerate(self.layers):
+            y = layer(y)
+        y +=  self.skip[-1](self.skip[-2](x)) if len(self.skip)>0 else x
+        y = jax.nn.relu(y)
+        return y
+
+
+
+def make_layer(in_planes, planes, num_blocks, stride_in, key) -> None:
+        keys = jax.random.split(key, num_blocks)
+        strides = [stride_in] + [1]*(num_blocks-1)
+
+        layers = []
+        for stride in strides:
+            key = keys[stride]
+            layers.append(BasicBlock(in_planes,planes,key,stride=stride))
+            in_planes = planes
+        return layers
+
+class ResNet18(eqx.Module):
     layers: list
 
-    def __init__(self, key):
-        key1, key2, key3 = jax.random.split(key, 3)
-
+    def __init__(self,key) -> None:
+        super(ResNet18).__init__()
+        key1, key2, key3, key4, key5, key6 = jax.random.split(key, 5)
         self.layers = [
-            eqx.nn.Conv2d(3,6,5,1,1, key=key1),
-            jax.nn.relu,
-            eqx.nn.MaxPool2d(2,2),
-            eqx.nn.Conv2d(6,16,5,1,1, key=key2),
-            jax.nn.relu,
-            eqx.nn.MaxPool2d(2,2),
-            eqx.nn.ConvTranspose2d(in_channels = 16,out_channels = 3,kernel_size = 9,
-                                   stride = 3, output_padding = 2, padding = 1, 
-                                   dilation=2 , key=key3),
-            jax.nn.relu,
+            eqx.nn.Conv2d(in_channels=3, out_channels=64,  kernel_size=3, stride= 1,padding=1, use_bias=False, key=key1),
+            eqx.experimental.BatchNorm(input_size=64, axis_name="batch"),
+            jax.nn.relu]
+        self.layers.extend(make_layer(64, 64,2,1,key2))
+        self.layers.extend(make_layer(64,128,2,2,key3))
+        self.layers.extend(make_layer(128,256,2,2,key4))
+        self.layers.extend(make_layer(256,512,2,2,key5))
+        
+        output_lyrs = [eqx.nn.AvgPool2d(4,1),
+            jnp.ravel,
+            eqx.nn.Linear(512,10,key=key6),
+            jax.nn.log_softmax
         ]
-    
-    def __call__(self, x: Float[Array, "3 32 32"]) ->  Float[Array, "3 32 32"]:
+        self.layers.extend(output_lyrs)
+
+    def __call__(self, x: Float[Array, "3 32 32"]) ->  Float[Array, "10"]:
         for i, layer in enumerate(self.layers):
             x = layer(x)
-        return x
-
-class resnet_skip_connection_cifar10(eqx.Module):
-    layers: list
-
-    def __init__(self, key):
-        self.layers = [
-            resnet_block_conv_cifar10(key),
-        ]
-
-    def __call__(self, x: Float[Array, "3 32 32"]) ->  Float[Array, "3 32 32"]:
-            for layer in self.layers:
-                y = layer(x)
-            return x + y
-
-
-class resnet_cifar10(eqx.Module):
-    layers: list
-
-    def __init__(self, key):
-        key1, key2, key3, key4 = jax.random.split(key, 4)
-        self.layers = [
-            resnet_skip_connection_cifar10(key1),
-            resnet_skip_connection_cifar10(key2),
-            resnet_skip_connection_cifar10(key3),
-            jnp.ravel,
-            eqx.nn.MLP(3*32*32, 10,10,2, key=key4),
-        ]
-
-    def __call__(self, x: Float[Array, "3 32 32"]) -> Float[Array, "10"]:
-        for layer in self.layers:
-            x = layer(x)
-        return x
-    
-
-
-
+            #print(f'Output Shape of layer {i} is:  {x.shape}')
+        return x 

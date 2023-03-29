@@ -4,10 +4,11 @@ build
 isort
 black
 flake8
-
 jupyterlab
 torch
+torchvision
 tqdm
+datasets
 pandas
 numpy
 wandb
@@ -17,12 +18,16 @@ scikit-learn
 click
 joblib
 pyyaml
-nltk
 hydra-core
-pytorch-lightning
 hydra_colorlog
 rich
-datasets
 six
 filelock
-diffwave
+wget
+-f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+jax[cuda11_cudnn82]  # GPU
+#jax[cpu]  # CPU
+tree-math
+equinox
+optax
+carbontracker
